@@ -1,0 +1,55 @@
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+pubspec.lock
+
+# Android
+android/local.properties
+android/.gradle
+android/key.properties
+android/app/google-services.json
+*.keystore
+*.jks
+
+# iOS / macOS
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Pods/
+ios/.dart_tool/
+ios/Flutter/Generated.xcconfig
+ios/Runner/GeneratedPluginRegistrant.*
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/.dart_tool/
+*.xcworkspace/xcuserdata/
+
+# Windows
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugins.cmake
+
+# Secrets - NEVER commit these
+.env
+.env.local
+secrets.dart
+lib/core/constants/secrets.dart
+GoogleService-Info.plist
+google-services.json
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Generated files (keep .g.dart in git for CI builds without build_runner)
+# Uncomment below to exclude generated files:
+# *.g.dart
+
+# OS
+.DS_Store
+Thumbs.db

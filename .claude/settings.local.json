@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(dir \"C:\\\\office laptop data\\\\mmkannan\\\\Cloud-file-analyzer\")",
+      "Bash(flutter pub *)",
+      "Bash(dart run *)",
+      "Bash(flutter run *)",
+      "Bash(flutter doctor *)",
+      "Bash(xargs grep -l \"flutter_appauth\\\\|authorizeAndExchangeCode\")",
+      "Bash(cmd *)",
+      "Bash(flutter analyze *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\office laptop data\\\\mmkannan\\\\Cloud-file-analyzer\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(flutter devices *)",
+      "Bash(flutter emulators *)",
+      "Bash(flutter clean *)",
+      "Bash(flutter build *)",
+      "Bash(flutter --version)",
+      "Bash(java -version)",
+      "Bash(flutter config *)",
+      "Bash(flutter sdk-path *)",
+      "Bash(where flutter *)",
+      "Bash(Get-ChildItem \"C:\\\\flutter\\\\flutter\\\\packages\\\\flutter_tools\\\\gradle\\\\\" 2>&1 | Select-Object Name | head -20 *)",
+      "Bash(del \"C:\\\\office laptop data\\\\mmkannan\\\\Cloud-file-analyzer\\\\lib\\\\data\\\\remote\\\\google\\\\google_photos_api.dart\")",
+      "Bash(del \"C:\\\\office laptop data\\\\mmkannan\\\\Cloud-file-analyzer\\\\lib\\\\data\\\\remote\\\\google\\\\google_photos_client.dart\")",
+      "Bash(del \"C:\\\\office laptop data\\\\mmkannan\\\\Cloud-file-analyzer\\\\lib\\\\domain\\\\usecases\\\\auth\\\\login_google_photos_usecase.dart\")",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\office laptop data\\\\mmkannan\\\\Cloud-file-analyzer\" -Recurse -Directory | ForEach-Object { $_.FullName } | Sort-Object)",
+      "Bash(git add *)"
+    ]
+  }
+}

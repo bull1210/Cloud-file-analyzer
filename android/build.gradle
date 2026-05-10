@@ -1,0 +1,32 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// AGP 8.9+ requires namespace in every library build.gradle.
+// Patch any plugin that omits it (e.g. flutter_appauth 4.x).
+subprojects {
+    afterEvaluate { project ->
+        if (project.plugins.hasPlugin('com.android.library')) {
+            try {
+                if (!project.android.namespace) {
+                    project.android.namespace = project.group
+                }
+            } catch (Exception ignored) {}
+        }
+    }
+}
+
+rootProject.buildDir = '../build'
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(':app')
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

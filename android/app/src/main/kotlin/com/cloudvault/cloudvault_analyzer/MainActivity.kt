@@ -1,0 +1,5 @@
+package com.cloudvault.cloudvault_analyzer
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
