@@ -9,20 +9,15 @@ import '../local/database/app_database.dart';
 import '../local/secure_storage/token_storage_service.dart';
 import '../remote/dropbox/dropbox_api.dart';
 import '../remote/dropbox/dropbox_auth_service.dart';
-import '../remote/dropbox/dropbox_client.dart';
 import '../remote/google/google_auth_service.dart';
 import '../remote/google/google_drive_api.dart';
-import '../remote/google/google_drive_client.dart';
 import '../remote/apple/apple_auth_service.dart';
 import '../remote/apple/icloud_api.dart';
 import '../remote/mega/mega_auth_service.dart';
-import '../remote/mega/mega_client.dart';
 import '../remote/microsoft/microsoft_auth_service.dart';
 import '../remote/microsoft/onedrive_api.dart';
-import '../remote/microsoft/onedrive_client.dart';
 import '../remote/terabox/terabox_api.dart';
 import '../remote/terabox/terabox_auth_service.dart';
-import '../remote/terabox/terabox_client.dart';
 import 'auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -30,19 +25,14 @@ class AuthRepositoryImpl implements AuthRepository {
     required this.db,
     required this.tokenStorage,
     required this.googleAuthService,
-    required this.googleDriveClient,
     required this.googleDriveApi,
     required this.microsoftAuthService,
-    required this.oneDriveClient,
     required this.oneDriveApi,
     required this.dropboxAuthService,
-    required this.dropboxClient,
     required this.dropboxApi,
     required this.teraboxAuthService,
-    required this.teraboxClient,
     required this.teraboxApi,
     required this.megaAuthService,
-    required this.megaClient,
     required this.appleAuthService,
     required this.iCloudApi,
   });
@@ -50,19 +40,14 @@ class AuthRepositoryImpl implements AuthRepository {
   final AppDatabase db;
   final TokenStorageService tokenStorage;
   final GoogleAuthService googleAuthService;
-  final GoogleDriveClient googleDriveClient;
   final GoogleDriveApi googleDriveApi;
   final MicrosoftAuthService microsoftAuthService;
-  final OneDriveClient oneDriveClient;
   final OneDriveApi oneDriveApi;
   final DropboxAuthService dropboxAuthService;
-  final DropboxClient dropboxClient;
   final DropboxApi dropboxApi;
   final TeraboxAuthService teraboxAuthService;
-  final TeraboxClient teraboxClient;
   final TeraboxApi teraboxApi;
   final MegaAuthService megaAuthService;
-  final MegaClient megaClient;
   final AppleAuthService appleAuthService;
   final ICloudApi iCloudApi;
 
@@ -81,11 +66,9 @@ class AuthRepositoryImpl implements AuthRepository {
       idToken: authResult.idToken,
     );
 
-    googleDriveClient.setAccount(accountId);
-
     DriveAbout? about;
     try {
-      about = await googleDriveApi.getAbout();
+      about = await googleDriveApi.getAbout(accountId);
     } catch (_) {}
 
     final email = (about?.email.isNotEmpty == true)
@@ -145,18 +128,14 @@ class AuthRepositoryImpl implements AuthRepository {
       rethrow;
     }
 
-    logger.log(tag, 'Step 4: setting account on OneDriveClient');
-    oneDriveClient.setAccount(accountId);
-    logger.log(tag, 'Step 4 done');
-
-    logger.log(tag, 'Step 5: fetching user info from Graph API (timeout=10s)');
+    logger.log(tag, 'Step 4: fetching user info from Graph API (timeout=10s)');
     OneDriveUserInfo? userInfo;
     try {
-      userInfo = await oneDriveApi.getUserInfo()
+      userInfo = await oneDriveApi.getUserInfo(accountId)
           .timeout(const Duration(seconds: 10));
-      logger.log(tag, 'Step 5 done — email=${userInfo.email}  displayName=${userInfo.displayName}');
+      logger.log(tag, 'Step 4 done — email=${userInfo.email}  displayName=${userInfo.displayName}');
     } catch (e) {
-      logger.error(tag, 'Step 5 FAILED — getUserInfo threw (account still saved): $e', e);
+      logger.error(tag, 'Step 4 FAILED — getUserInfo threw (account still saved): $e', e);
     }
 
     final email = (userInfo?.email.isNotEmpty == true)
@@ -166,9 +145,9 @@ class AuthRepositoryImpl implements AuthRepository {
     final displayName = (userInfo?.displayName.isNotEmpty == true)
         ? userInfo!.displayName
         : _jwtClaim(authResult.idToken, 'name') ?? email;
-    logger.log(tag, 'Step 5 resolved — email=$email  displayName=$displayName  source=${userInfo != null ? 'API' : 'JWT/fallback'}');
+    logger.log(tag, 'Step 4 resolved — email=$email  displayName=$displayName  source=${userInfo != null ? 'API' : 'JWT/fallback'}');
 
-    logger.log(tag, 'Step 6: inserting account row in DB');
+    logger.log(tag, 'Step 5: inserting account row in DB');
     final companion = AccountsTableCompanion.insert(
       id: accountId,
       provider: CloudProvider.microsoft.dbValue,
@@ -179,9 +158,9 @@ class AuthRepositoryImpl implements AuthRepository {
     );
     try {
       await db.accountDao.insertAccount(companion);
-      logger.log(tag, 'Step 6 done — DB row inserted');
+      logger.log(tag, 'Step 5 done — DB row inserted');
     } catch (e) {
-      logger.error(tag, 'Step 6 FAILED — DB insert threw: $e', e);
+      logger.error(tag, 'Step 5 FAILED — DB insert threw: $e', e);
       rethrow;
     }
 
@@ -208,11 +187,9 @@ class AuthRepositoryImpl implements AuthRepository {
       expiry: authResult.accessTokenExpirationDateTime,
     );
 
-    dropboxClient.setAccount(accountId);
-
     DropboxUserInfo? userInfo;
     try {
-      userInfo = await dropboxApi.getCurrentAccount();
+      userInfo = await dropboxApi.getCurrentAccount(accountId);
     } catch (e) {
       logger.error('AuthRepo', 'Dropbox getUserInfo failed', e);
     }
@@ -252,11 +229,9 @@ class AuthRepositoryImpl implements AuthRepository {
       expiry: authResult.accessTokenExpirationDateTime,
     );
 
-    teraboxClient.setAccount(accountId);
-
     TeraboxUserInfo? userInfo;
     try {
-      userInfo = await teraboxApi.getUserInfo();
+      userInfo = await teraboxApi.getUserInfo(accountId);
     } catch (e) {
       logger.error('AuthRepo', 'TeraBox getUserInfo failed', e);
     }
@@ -301,8 +276,6 @@ class AuthRepositoryImpl implements AuthRepository {
       refreshToken: authResult.refreshToken,
       expiry: authResult.accessTokenExpirationDateTime,
     );
-
-    megaClient.setAccount(accountId);
 
     final companion = AccountsTableCompanion.insert(
       id: accountId,
@@ -467,10 +440,9 @@ class AuthRepositoryImpl implements AuthRepository {
           expiry: authResult.accessTokenExpirationDateTime,
           idToken: authResult.idToken,
         );
-        googleDriveClient.setAccount(accountId);
         DriveAbout? about;
         try {
-          about = await googleDriveApi.getAbout();
+          about = await googleDriveApi.getAbout(accountId);
         } catch (_) {}
         final email = (about?.email.isNotEmpty == true)
             ? about!.email
@@ -499,11 +471,10 @@ class AuthRepositoryImpl implements AuthRepository {
           idToken: authResult.idToken,
         );
         logger.log(tag, 'tokens saved — refreshToken=${authResult.refreshToken != null}');
-        oneDriveClient.setAccount(accountId);
-        logger.log(tag, 'OneDriveClient account set, fetching user info…');
+        logger.log(tag, 'fetching user info…');
         OneDriveUserInfo? userInfo;
         try {
-          userInfo = await oneDriveApi.getUserInfo()
+          userInfo = await oneDriveApi.getUserInfo(accountId)
               .timeout(const Duration(seconds: 10));
           logger.log(tag, 'getUserInfo() success — email=${userInfo.email}');
         } catch (e) {
@@ -533,10 +504,9 @@ class AuthRepositoryImpl implements AuthRepository {
           refreshToken: authResult.refreshToken,
           expiry: authResult.accessTokenExpirationDateTime,
         );
-        dropboxClient.setAccount(accountId);
         DropboxUserInfo? userInfo;
         try {
-          userInfo = await dropboxApi.getCurrentAccount();
+          userInfo = await dropboxApi.getCurrentAccount(accountId);
         } catch (_) {}
         final dbEmail = userInfo?.email ?? row.email;
         final dbName = userInfo?.displayName ?? row.displayName;
@@ -555,7 +525,6 @@ class AuthRepositoryImpl implements AuthRepository {
           refreshToken: authResult.refreshToken,
           expiry: authResult.accessTokenExpirationDateTime,
         );
-        teraboxClient.setAccount(accountId);
 
       case CloudProvider.mega:
         // Re-auth for MEGA re-uses stored credentials; show dialog from UI layer.

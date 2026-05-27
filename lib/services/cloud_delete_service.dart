@@ -35,9 +35,9 @@ class CloudDeleteService {
     for (final file in files) {
       try {
         if (file.provider == CloudProvider.google) {
-          await googleDriveApi.trashFile(file.providerFileId);
+          await googleDriveApi.trashFile(file.accountId, file.providerFileId);
         } else {
-          await oneDriveApi.deleteItem(file.providerFileId);
+          await oneDriveApi.deleteItem(file.accountId, file.providerFileId);
         }
         await db.fileRecordDao.deleteByLocalId(file.id);
         deleted++;

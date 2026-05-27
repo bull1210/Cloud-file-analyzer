@@ -36,9 +36,10 @@ class TeraboxApi {
 
   final TeraboxClient client;
 
-  Future<TeraboxUserInfo> getUserInfo() async {
+  Future<TeraboxUserInfo> getUserInfo(String accountId) async {
     final resp = await client.get<Map<String, dynamic>>(
       '/rest/2.0/passport/users/info',
+      accountId: accountId,
     );
     final data = resp.data!;
     return TeraboxUserInfo(
@@ -48,13 +49,13 @@ class TeraboxApi {
     );
   }
 
-  Future<void> testConnection() async {
+  Future<void> testConnection(String accountId) async {
     logger.log('TeraboxApi', 'testConnection() starting…');
-    await getUserInfo();
+    await getUserInfo(accountId);
     logger.log('TeraboxApi', 'testConnection() OK');
   }
 
-  Stream<List<TeraboxFileItem>> streamAllFiles({String dir = '/'}) async* {
+  Stream<List<TeraboxFileItem>> streamAllFiles(String accountId, {String dir = '/'}) async* {
     logger.log('TeraboxApi', 'streamAllFiles() dir=$dir');
     int page = 1;
     int totalItems = 0;
@@ -62,6 +63,7 @@ class TeraboxApi {
     while (true) {
       final resp = await client.get<Map<String, dynamic>>(
         '/rest/2.0/xpan/file',
+        accountId: accountId,
         queryParameters: {
           'method': 'list',
           'dir': dir,
@@ -89,7 +91,7 @@ class TeraboxApi {
 
       // Recurse into subdirectories
       for (final item in items.where((i) => i.isFolder)) {
-        yield* streamAllFiles(dir: item.path);
+        yield* streamAllFiles(accountId, dir: item.path);
       }
 
       if (list.length < 100) break;

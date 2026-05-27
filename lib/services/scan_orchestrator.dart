@@ -15,7 +15,6 @@ import '../data/remote/google/google_auth_service.dart';
 import '../data/remote/google/google_drive_api.dart';
 import '../data/remote/google/google_drive_client.dart';
 import '../data/remote/mega/mega_api.dart';
-import '../data/remote/mega/mega_client.dart';
 import '../data/remote/microsoft/microsoft_auth_service.dart';
 import '../data/remote/microsoft/onedrive_api.dart';
 import '../data/remote/microsoft/onedrive_client.dart';
@@ -57,29 +56,19 @@ class ScanOrchestrator {
   ScanOrchestrator({
     required this.db,
     required this.tokenStorage,
-    required this.googleDriveClient,
     required this.googleDriveApi,
-    required this.oneDriveClient,
     required this.oneDriveApi,
-    required this.dropboxClient,
     required this.dropboxApi,
-    required this.teraboxClient,
     required this.teraboxApi,
-    required this.megaClient,
     required this.megaApi,
   });
 
   final AppDatabase db;
   final TokenStorageService tokenStorage;
-  final GoogleDriveClient googleDriveClient;
   final GoogleDriveApi googleDriveApi;
-  final OneDriveClient oneDriveClient;
   final OneDriveApi oneDriveApi;
-  final DropboxClient dropboxClient;
   final DropboxApi dropboxApi;
-  final TeraboxClient teraboxClient;
   final TeraboxApi teraboxApi;
-  final MegaClient megaClient;
   final MegaApi megaApi;
 
   Isolate? _scanIsolate;
@@ -103,19 +92,14 @@ class ScanOrchestrator {
     try {
       switch (account.provider) {
         case CloudProvider.google:
-          googleDriveClient.setAccount(account.id);
-          await googleDriveApi.getAbout();
+          await googleDriveApi.getAbout(account.id);
         case CloudProvider.microsoft:
-          oneDriveClient.setAccount(account.id);
-          await oneDriveApi.getUserInfo();
+          await oneDriveApi.getUserInfo(account.id);
         case CloudProvider.dropbox:
-          dropboxClient.setAccount(account.id);
-          await dropboxApi.testConnection();
+          await dropboxApi.testConnection(account.id);
         case CloudProvider.terabox:
-          teraboxClient.setAccount(account.id);
-          await teraboxApi.testConnection();
+          await teraboxApi.testConnection(account.id);
         case CloudProvider.mega:
-          megaClient.setAccount(account.id);
           await megaApi.testConnection();
         case CloudProvider.apple:
           // iCloud Drive has no public REST API. Native iOS/macOS scanning is
@@ -311,10 +295,9 @@ Future<void> _scanWorker(_ScanWorkerParams params) async {
           tokenStorage: tokenStorage,
           authService: _NoopGoogleAuthService(),
         );
-        client.setAccount(params.accountId);
         final api = GoogleDriveApi(client: client);
 
-        await for (final page in api.streamAllFiles()) {
+        await for (final page in api.streamAllFiles(params.accountId)) {
           for (final file in page) {
             if (file.isFolder) {
               foldersScanned++;
@@ -347,10 +330,9 @@ Future<void> _scanWorker(_ScanWorkerParams params) async {
           tokenStorage: tokenStorage,
           authService: _NoopMicrosoftAuthService(),
         );
-        client.setAccount(params.accountId);
         final api = OneDriveApi(client: client);
 
-        await for (final page in api.streamAllItems()) {
+        await for (final page in api.streamAllItems(params.accountId)) {
           for (final item in page) {
             if (item.isFolder) {
               foldersScanned++;
@@ -383,10 +365,9 @@ Future<void> _scanWorker(_ScanWorkerParams params) async {
           tokenStorage: tokenStorage,
           authService: _NoopDropboxAuthService(),
         );
-        client.setAccount(params.accountId);
         final api = DropboxApi(client: client);
 
-        await for (final page in api.streamAllFiles()) {
+        await for (final page in api.streamAllFiles(params.accountId)) {
           for (final file in page) {
             if (file.isFolder) {
               foldersScanned++;
@@ -425,10 +406,9 @@ Future<void> _scanWorker(_ScanWorkerParams params) async {
           tokenStorage: tokenStorage,
           authService: _NoopTeraboxAuthService(),
         );
-        client.setAccount(params.accountId);
         final api = TeraboxApi(client: client);
 
-        await for (final page in api.streamAllFiles()) {
+        await for (final page in api.streamAllFiles(params.accountId)) {
           for (final file in page) {
             if (file.isFolder) {
               foldersScanned++;

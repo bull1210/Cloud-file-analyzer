@@ -103,9 +103,10 @@ class GoogleDriveApi {
 
   final GoogleDriveClient client;
 
-  Future<DriveAbout> getAbout() async {
+  Future<DriveAbout> getAbout(String accountId) async {
     final response = await client.get<Map<String, dynamic>>(
       GoogleDriveEndpoints.aboutDrive,
+      accountId: accountId,
       queryParameters: {
         'fields': 'user(emailAddress,displayName,photoLink),storageQuota',
       },
@@ -115,11 +116,13 @@ class GoogleDriveApi {
 
   /// Fetches one page of file metadata. No file content is downloaded.
   Future<({List<DriveFileMetadata> files, String? nextPageToken})> listFilesPage({
+    required String accountId,
     String? pageToken,
     int pageSize = AppConstants.scanPageSize,
   }) async {
     final response = await client.get<Map<String, dynamic>>(
       GoogleDriveEndpoints.filesList,
+      accountId: accountId,
       queryParameters: {
         'fields': GoogleDriveEndpoints.listFields,
         'pageSize': pageSize,
@@ -142,23 +145,24 @@ class GoogleDriveApi {
 
   /// Moves a file to the user's Google Drive Trash (not permanently deleted).
   /// Requires the `drive` OAuth scope — will throw 403 with `drive.metadata.readonly`.
-  Future<void> trashFile(String fileId) async {
+  Future<void> trashFile(String accountId, String fileId) async {
     await client.patch<Map<String, dynamic>>(
       '${GoogleDriveEndpoints.filesList}/$fileId',
+      accountId: accountId,
       data: {'trashed': true},
     );
   }
 
   /// Stream all file metadata pages. Yields batches for DB insertion.
   /// Nothing is downloaded — only file metadata (name, size, dates, MIME type).
-  Stream<List<DriveFileMetadata>> streamAllFiles() async* {
+  Stream<List<DriveFileMetadata>> streamAllFiles(String accountId) async* {
     String? pageToken;
     int retryCount = 0;
     const maxRetries = 5;
 
     do {
       try {
-        final page = await listFilesPage(pageToken: pageToken);
+        final page = await listFilesPage(accountId: accountId, pageToken: pageToken);
         if (page.files.isNotEmpty) yield page.files;
         pageToken = page.nextPageToken;
         retryCount = 0;

@@ -106,13 +106,15 @@ class OneDriveApi {
 
   final OneDriveClient client;
 
-  Future<OneDriveUserInfo> getUserInfo() async {
+  Future<OneDriveUserInfo> getUserInfo(String accountId) async {
     final userResp = await client.get<Map<String, dynamic>>(
       OneDriveEndpoints.userInfo,
+      accountId: accountId,
       queryParameters: {'\$select': 'mail,displayName,userPrincipalName'},
     );
     final driveResp = await client.get<Map<String, dynamic>>(
       OneDriveEndpoints.driveInfo,
+      accountId: accountId,
       queryParameters: {'\$select': 'quota'},
     );
 
@@ -132,11 +134,13 @@ class OneDriveApi {
   /// Fetches one page of children for a given item (metadata only — no content).
   Future<({List<OneDriveItemMetadata> items, String? nextLink})>
       listChildrenPage({
+    required String accountId,
     required String itemId,
     String? nextLink,
   }) async {
     final response = await client.get<Map<String, dynamic>>(
       nextLink ?? '${OneDriveEndpoints.driveItems}/$itemId/children',
+      accountId: accountId,
       queryParameters: nextLink == null
           ? {
               '\$select': OneDriveEndpoints.itemFields,
@@ -158,18 +162,20 @@ class OneDriveApi {
 
   /// Moves an item to the user's OneDrive Recycle Bin (not permanently deleted).
   /// Requires the `Files.ReadWrite` scope — will throw 403 with `Files.Read` only.
-  Future<void> deleteItem(String itemId) async {
+  Future<void> deleteItem(String accountId, String itemId) async {
     await client.delete<void>(
       '${OneDriveEndpoints.driveItems}/$itemId',
+      accountId: accountId,
     );
   }
 
   /// Stream all OneDrive metadata using BFS queue to avoid stack overflow.
   /// No file content is downloaded — only names, sizes, dates, MIME types.
-  Stream<List<OneDriveItemMetadata>> streamAllItems() async* {
+  Stream<List<OneDriveItemMetadata>> streamAllItems(String accountId) async* {
     // Queue-based BFS: start with the root drive
     final rootResp = await client.get<Map<String, dynamic>>(
       '/me/drive/root',
+      accountId: accountId,
       queryParameters: {'\$select': OneDriveEndpoints.itemFields},
     );
     final rootId = rootResp.data!['id'] as String;
@@ -184,6 +190,7 @@ class OneDriveApi {
       do {
         try {
           final page = await listChildrenPage(
+            accountId: accountId,
             itemId: itemId,
             nextLink: nextLink,
           );

@@ -12,14 +12,9 @@ class MegaClient {
   final TokenStorageService tokenStorage;
   final MegaAuthService authService;
 
-  String? _currentAccountId;
-
-  void setAccount(String accountId) => _currentAccountId = accountId;
-
   // Returns the stored email (used as the account identifier for MEGA).
-  Future<String?> getStoredEmail() async {
-    if (_currentAccountId == null) return null;
-    return tokenStorage.getAccessToken(_currentAccountId!);
+  Future<String?> getStoredEmail(String accountId) async {
+    return tokenStorage.getAccessToken(accountId);
   }
 }
 

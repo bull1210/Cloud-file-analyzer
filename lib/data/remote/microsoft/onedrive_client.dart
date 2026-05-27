@@ -21,23 +21,20 @@ class OneDriveClient {
   final MicrosoftAuthService authService;
   late final Dio _dio;
 
-  String? _currentAccountId;
-
-  void setAccount(String accountId) => _currentAccountId = accountId;
-
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          if (_currentAccountId != null) {
-            final isValid = await tokenStorage.isTokenValid(_currentAccountId!);
+          final accountId = options.extra['accountId'] as String?;
+          if (accountId != null) {
+            final isValid = await tokenStorage.isTokenValid(accountId);
             if (!isValid) {
               try {
                 final refreshed =
-                    await authService.refreshAccessToken(_currentAccountId!);
+                    await authService.refreshAccessToken(accountId);
                 if (refreshed != null) {
                   await tokenStorage.saveTokens(
-                    accountId: _currentAccountId!,
+                    accountId: accountId,
                     accessToken: refreshed.accessToken,
                     refreshToken: refreshed.refreshToken,
                     expiry: refreshed.accessTokenExpirationDateTime,
@@ -45,7 +42,7 @@ class OneDriveClient {
                 }
               } catch (_) {}
             }
-            final token = await tokenStorage.getAccessToken(_currentAccountId!);
+            final token = await tokenStorage.getAccessToken(accountId);
             if (token != null) {
               options.headers['Authorization'] = 'Bearer $token';
             }
@@ -92,10 +89,15 @@ class OneDriveClient {
 
   Future<Response<T>> get<T>(
     String path, {
+    required String accountId,
     Map<String, dynamic>? queryParameters,
   }) async {
     try {
-      return await _dio.get<T>(path, queryParameters: queryParameters);
+      return await _dio.get<T>(
+        path,
+        queryParameters: queryParameters,
+        options: Options(extra: {'accountId': accountId}),
+      );
     } on DioException catch (e) {
       if (e.error is AppException) throw e.error as AppException;
       throw NetworkException(
@@ -106,9 +108,12 @@ class OneDriveClient {
     }
   }
 
-  Future<Response<T>> delete<T>(String path) async {
+  Future<Response<T>> delete<T>(String path, {required String accountId}) async {
     try {
-      return await _dio.delete<T>(path);
+      return await _dio.delete<T>(
+        path,
+        options: Options(extra: {'accountId': accountId}),
+      );
     } on DioException catch (e) {
       if (e.error is AppException) throw e.error as AppException;
       throw NetworkException(

@@ -40,9 +40,10 @@ class DropboxApi {
 
   final DropboxClient client;
 
-  Future<DropboxUserInfo> getCurrentAccount() async {
+  Future<DropboxUserInfo> getCurrentAccount(String accountId) async {
     final resp = await client.postEmpty<Map<String, dynamic>>(
       '/users/get_current_account',
+      accountId: accountId,
     );
     final data = resp.data!;
     final name = data['name'] as Map<String, dynamic>?;
@@ -53,17 +54,18 @@ class DropboxApi {
     );
   }
 
-  Future<void> testConnection() async {
+  Future<void> testConnection(String accountId) async {
     logger.log('DropboxApi', 'testConnection() starting…');
-    await getCurrentAccount();
+    await getCurrentAccount(accountId);
     logger.log('DropboxApi', 'testConnection() OK');
   }
 
-  Stream<List<DropboxFileItem>> streamAllFiles() async* {
+  Stream<List<DropboxFileItem>> streamAllFiles(String accountId) async* {
     logger.log('DropboxApi', 'streamAllFiles() starting');
 
     var resp = await client.post<Map<String, dynamic>>(
       '/files/list_folder',
+      accountId: accountId,
       data: {
         'path': '',
         'recursive': true,
@@ -97,6 +99,7 @@ class DropboxApi {
 
       resp = await client.post<Map<String, dynamic>>(
         '/files/list_folder/continue',
+        accountId: accountId,
         data: {'cursor': cursor},
       );
     }

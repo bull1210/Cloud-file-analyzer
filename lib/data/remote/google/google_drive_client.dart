@@ -22,24 +22,21 @@ class GoogleDriveClient {
   final GoogleAuthService authService;
   late final Dio _dio;
 
-  String? _currentAccountId;
-
-  void setAccount(String accountId) => _currentAccountId = accountId;
-
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          if (_currentAccountId != null) {
-            final isValid = await tokenStorage.isTokenValid(_currentAccountId!);
+          final accountId = options.extra['accountId'] as String?;
+          if (accountId != null) {
+            final isValid = await tokenStorage.isTokenValid(accountId);
             logger.log('DriveClient', '→ ${options.path} tokenValid=$isValid');
             if (!isValid) {
               logger.log('DriveClient', 'Token invalid — attempting refresh…');
               try {
-                final refreshed = await authService.refreshAccessToken(_currentAccountId!);
+                final refreshed = await authService.refreshAccessToken(accountId);
                 if (refreshed != null) {
                   await tokenStorage.saveTokens(
-                    accountId: _currentAccountId!,
+                    accountId: accountId,
                     accessToken: refreshed.accessToken,
                     refreshToken: refreshed.refreshToken,
                     expiry: refreshed.accessTokenExpirationDateTime,
@@ -52,7 +49,7 @@ class GoogleDriveClient {
                 logger.error('DriveClient', 'Token refresh threw', e);
               }
             }
-            final token = await tokenStorage.getAccessToken(_currentAccountId!);
+            final token = await tokenStorage.getAccessToken(accountId);
             if (token != null) {
               options.headers['Authorization'] = 'Bearer $token';
             } else {
@@ -107,10 +104,15 @@ class GoogleDriveClient {
 
   Future<Response<T>> get<T>(
     String path, {
+    required String accountId,
     Map<String, dynamic>? queryParameters,
   }) async {
     try {
-      return await _dio.get<T>(path, queryParameters: queryParameters);
+      return await _dio.get<T>(
+        path,
+        queryParameters: queryParameters,
+        options: Options(extra: {'accountId': accountId}),
+      );
     } on DioException catch (e) {
       if (e.error is AppException) throw e.error as AppException;
       throw NetworkException(
@@ -123,10 +125,15 @@ class GoogleDriveClient {
 
   Future<Response<T>> patch<T>(
     String path, {
+    required String accountId,
     Object? data,
   }) async {
     try {
-      return await _dio.patch<T>(path, data: data);
+      return await _dio.patch<T>(
+        path,
+        data: data,
+        options: Options(extra: {'accountId': accountId}),
+      );
     } on DioException catch (e) {
       if (e.error is AppException) throw e.error as AppException;
       throw NetworkException(

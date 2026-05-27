@@ -23,22 +23,19 @@ class DropboxClient {
   final DropboxAuthService authService;
   late final Dio _dio;
 
-  String? _currentAccountId;
-
-  void setAccount(String accountId) => _currentAccountId = accountId;
-
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          if (_currentAccountId != null) {
-            final isValid = await tokenStorage.isTokenValid(_currentAccountId!);
+          final accountId = options.extra['accountId'] as String?;
+          if (accountId != null) {
+            final isValid = await tokenStorage.isTokenValid(accountId);
             if (!isValid) {
               try {
-                final refreshed = await authService.refreshAccessToken(_currentAccountId!);
+                final refreshed = await authService.refreshAccessToken(accountId);
                 if (refreshed != null) {
                   await tokenStorage.saveTokens(
-                    accountId: _currentAccountId!,
+                    accountId: accountId,
                     accessToken: refreshed.accessToken,
                     refreshToken: refreshed.refreshToken,
                     expiry: refreshed.accessTokenExpirationDateTime,
@@ -48,7 +45,7 @@ class DropboxClient {
                 logger.error('DropboxClient', 'Token refresh threw', e);
               }
             }
-            final token = await tokenStorage.getAccessToken(_currentAccountId!);
+            final token = await tokenStorage.getAccessToken(accountId);
             if (token != null) {
               options.headers['Authorization'] = 'Bearer $token';
             }
@@ -85,9 +82,13 @@ class DropboxClient {
     );
   }
 
-  Future<Response<T>> post<T>(String path, {Object? data}) async {
+  Future<Response<T>> post<T>(String path, {required String accountId, Object? data}) async {
     try {
-      return await _dio.post<T>(path, data: data);
+      return await _dio.post<T>(
+        path,
+        data: data,
+        options: Options(extra: {'accountId': accountId}),
+      );
     } on DioException catch (e) {
       if (e.error is AppException) throw e.error as AppException;
       throw NetworkException(
@@ -102,5 +103,6 @@ class DropboxClient {
   // For no-argument endpoints (e.g. users/get_current_account) the body must be
   // the JSON null literal — an empty body with Content-Type: application/json
   // is rejected with HTTP 400.
-  Future<Response<T>> postEmpty<T>(String path) => post<T>(path, data: 'null');
+  Future<Response<T>> postEmpty<T>(String path, {required String accountId}) =>
+      post<T>(path, accountId: accountId, data: 'null');
 }
